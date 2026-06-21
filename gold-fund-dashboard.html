@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ارزش معاملات صندوق‌های طلا</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: #f5f4f0;
+    color: #2c2c2a;
+    direction: rtl;
+    font-size: 14px;
+  }
+  header {
+    background: #fff;
+    border-bottom: 1px solid #e0dfd8;
+    padding: 1.25rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  header h1 { font-size: 20px; font-weight: 500; color: #2c2c2a; }
+  header span { font-size: 13px; color: #888780; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+  .metric-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    border: 0.5px solid #e0dfd8;
+  }
+  .metric-card .label { font-size: 12px; color: #888780; margin-bottom: 6px; }
+  .metric-card .value { font-size: 20px; font-weight: 500; color: #2c2c2a; }
+  .metric-card .sub { font-size: 11px; color: #b4b2a9; margin-top: 2px; }
+  .chart-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1.25rem;
+    border: 0.5px solid #e0dfd8;
+    margin-bottom: 1.5rem;
+  }
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chart-title { font-size: 15px; font-weight: 500; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #888780; }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .btn-group { display: flex; gap: 4px; }
+  .btn-range {
+    padding: 5px 12px;
+    border: 0.5px solid #d3d1c7;
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #5f5e5a;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .btn-range:hover { background: #f5f4f0; }
+  .btn-range.active { background: #185fa5; color: #fff; border-color: #185fa5; }
+  .table-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1.25rem;
+    border: 0.5px solid #e0dfd8;
+    margin-bottom: 1.5rem;
+  }
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .table-title { font-size: 15px; font-weight: 500; }
+  .search-box {
+    padding: 6px 12px;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 6px;
+    font-size: 13px;
+    width: 180px;
+    background: #fff;
+    color: #2c2c2a;
+    outline: none;
+    direction: rtl;
+    font-family: inherit;
+  }
+  .search-box:focus { border-color: #378add; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: #f5f4f0; }
+  th {
+    padding: 8px 12px;
+    text-align: right;
+    font-weight: 500;
+    color: #5f5e5a;
+    border-bottom: 1px solid #e0dfd8;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+  }
+  th:hover { color: #185fa5; }
+  td {
+    padding: 8px 12px;
+    border-bottom: 0.5px solid #f1efe8;
+    color: #2c2c2a;
+    white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f9f8f5; }
+  .value-cell { font-variant-numeric: tabular-nums; }
+  .ma-cell { color: #888780; }
+  .high { color: #0f6e56; font-weight: 500; }
+  .low { color: #993c1d; }
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1rem;
+    font-size: 13px;
+    color: #888780;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .page-btns { display: flex; gap: 4px; }
+  .page-btn {
+    padding: 4px 10px;
+    border: 0.5px solid #d3d1c7;
+    background: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #5f5e5a;
+    font-family: inherit;
+  }
+  .page-btn:hover { background: #f5f4f0; }
+  .page-btn.active { background: #185fa5; color: #fff; border-color: #185fa5; }
+  .page-btn:disabled { opacity: 0.4; cursor: default; }
+  .add-section {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1.25rem;
+    border: 0.5px solid #e0dfd8;
+    margin-bottom: 1.5rem;
+  }
+  .add-title { font-size: 15px; font-weight: 500; margin-bottom: 1rem; }
+  .add-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group label { font-size: 12px; color: #5f5e5a; }
+  .form-group input {
+    padding: 7px 10px;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 6px;
+    font-size: 13px;
+    direction: rtl;
+    background: #fff;
+    color: #2c2c2a;
+    outline: none;
+    min-width: 140px;
+    font-family: inherit;
+  }
+  .form-group input:focus { border-color: #378add; }
+  .btn-add {
+    padding: 7px 20px;
+    background: #185fa5;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-add:hover { background: #0c447c; }
+  .msg { font-size: 12px; padding: 4px 0; }
+  .msg.ok { color: #0f6e56; }
+  .msg.err { color: #993c1d; }
+  .change-up { color: #0f6e56; }
+  .change-dn { color: #993c1d; }
+  .add-form select {
+    padding: 7px 10px;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 6px;
+    font-size: 13px;
+    direction: rtl;
+    background: #fff;
+    color: #2c2c2a;
+    outline: none;
+    font-family: inherit;
+    cursor: pointer;
+    min-width: 170px;
+  }
+  .add-form select:focus { border-color: #378add; }
+  .github-panel {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1.25rem;
+    border: 0.5px solid #e0dfd8;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .github-panel.open { display: block; }
+  .sync-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .sync-unknown { background: #b4b2a9; }
+  .sync-ok { background: #0f6e56; }
+  .sync-err { background: #993c1d; }
+  .sync-loading { background: #185fa5; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  @media (max-width: 640px) {
+    header { padding: 1rem; }
+    .container { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>ارزش معاملات صندوق‌های طلا</h1>
+    <span id="data-range"></span>
+  </div>
+  <span id="last-update" style="font-size:12px;color:#888780;"></span>
+</header>
+
+<div class="container">
+
+  <!-- GitHub Sync Panel -->
+  <div class="github-panel" id="github-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:#2c2c2a"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        <span style="font-weight:500;font-size:14px;">اتصال به GitHub</span>
+      </div>
+      <button onclick="toggleGithubPanel()" style="font-size:12px;color:#888780;background:none;border:none;cursor:pointer;font-family:inherit;">بستن ✕</button>
+    </div>
+    <div style="font-size:12px;color:#888780;margin-bottom:12px;line-height:1.8;">
+      برای اینکه داده‌های جدید در GitHub ذخیره بمانند، یک <strong>Personal Access Token</strong> با دسترسی <code>repo</code> وارد کنید.
+      <a href="https://github.com/settings/tokens/new?scopes=repo&description=gold-dashboard" target="_blank" rel="noopener" style="color:#185fa5;">ساخت Token از اینجا</a>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div class="form-group">
+        <label>GitHub Personal Access Token</label>
+        <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="min-width:280px;">
+      </div>
+      <button class="btn-add" onclick="saveToken()">ذخیره Token</button>
+    </div>
+    <div class="msg" id="gh-msg"></div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;">
+    <div id="sync-status" class="sync-dot sync-unknown" title="وضعیت اتصال GitHub"></div>
+    <span id="sync-label" style="font-size:12px;color:#888780;">GitHub sync: تنظیم نشده</span>
+    <button onclick="toggleGithubPanel()" style="font-size:12px;color:#185fa5;background:none;border:none;cursor:pointer;font-family:inherit;margin-right:auto;">تنظیمات</button>
+  </div>
+
+
+  <div class="metrics" id="metrics"></div>
+
+  <div class="add-section">
+    <div class="add-title">➕ افزودن داده جدید</div>
+    <div class="add-form">
+      <div class="form-group">
+        <label>سال</label>
+        <input type="number" id="inp-year" placeholder="1405" min="1380" max="1420" style="width:90px">
+      </div>
+      <div class="form-group">
+        <label>ماه</label>
+        <select id="inp-month">
+          <option value="01">فروردین - ماه اول</option>
+          <option value="02">اردیبهشت - ماه دوم</option>
+          <option value="03">خرداد - ماه سوم</option>
+          <option value="04">تیر - ماه چهارم</option>
+          <option value="05">مرداد - ماه پنجم</option>
+          <option value="06">شهریور - ماه ششم</option>
+          <option value="07">مهر - ماه هفتم</option>
+          <option value="08">آبان - ماه هشتم</option>
+          <option value="09">آذر - ماه نهم</option>
+          <option value="10">دی - ماه دهم</option>
+          <option value="11">بهمن - ماه یازدهم</option>
+          <option value="12">اسفند - ماه دوازدهم</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>روز</label>
+        <select id="inp-day"></select>
+      </div>
+      <div class="form-group">
+        <label>ارزش معاملات (میلیارد تومان)</label>
+        <input type="number" id="inp-value" placeholder="مثال: 15300" step="0.01">
+      </div>
+      <button class="btn-add" onclick="addRow()">ثبت داده</button>
+    </div>
+    <div class="msg" id="add-msg"></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">نمودار ارزش معاملات روزانه</div>
+      <div class="btn-group">
+        <button class="btn-range active" onclick="setRange('all',this)">همه</button>
+        <button class="btn-range" onclick="setRange(30,this)">۳۰ روز</button>
+        <button class="btn-range" onclick="setRange(90,this)">۳ ماه</button>
+        <button class="btn-range" onclick="setRange(180,this)">۶ ماه</button>
+      </div>
+    </div>
+    <div class="legend">
+      <span><span class="legend-dot" style="background:#378add"></span>ارزش روزانه</span>
+      <span><span class="legend-dot" style="background:#e6ac00;border-radius:50%"></span>میانگین ۳ روزه</span>
+      <span><span class="legend-dot" style="background:#d85a30;border-radius:50%"></span>میانگین ۷ روزه</span>
+      <span><span class="legend-dot" style="background:#1d9e75;border-radius:50%"></span>میانگین ۳۰ روزه</span>
+    </div>
+    <div style="position:relative;height:320px;margin-top:12px;">
+      <canvas id="mainChart"></canvas>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title">جدول داده‌ها</div>
+      <input class="search-box" type="text" id="search" placeholder="جستجو تاریخ..." oninput="filterTable()">
+    </div>
+    <div class="table-wrap">
+      <table id="data-table">
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)">تاریخ ↕</th>
+            <th onclick="sortTable(1)">ارزش (میلیارد ت) ↕</th>
+            <th>میانگین ۳ روزه</th>
+            <th>میانگین ۵ روزه</th>
+            <th>میانگین ۷ روزه</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <span id="pagination-info"></span>
+      <div class="page-btns" id="page-btns"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const RAW = [{"date": "1403/08/20", "value": 2179.43, "ma3": 2179.43, "ma5": 2179.43, "ma7": 2179.43}, {"date": "1403/08/21", "value": 2245.86, "ma3": 2212.64, "ma5": 2212.64, "ma7": 2212.64}, {"date": "1403/08/22", "value": 2092.83, "ma3": 2172.71, "ma5": 2172.71, "ma7": 2172.71}, {"date": "1403/08/23", "value": 1586.4, "ma3": 1975.03, "ma5": 2026.13, "ma7": 2026.13}, {"date": "1403/08/26", "value": 1263.41, "ma3": 1647.55, "ma5": 1873.59, "ma7": 1873.59}, {"date": "1403/08/27", "value": 634.2, "ma3": 1161.34, "ma5": 1564.54, "ma7": 1667.02}, {"date": "1403/08/28", "value": 947.27, "ma3": 948.29, "ma5": 1304.82, "ma7": 1564.2}, {"date": "1403/08/29", "value": 1721.28, "ma3": 1100.92, "ma5": 1230.51, "ma7": 1498.75}, {"date": "1403/08/30", "value": 2320.2, "ma3": 1662.92, "ma5": 1377.27, "ma7": 1509.37}, {"date": "1403/09/03", "value": 2503.23, "ma3": 2181.57, "ma5": 1625.24, "ma7": 1568.0}, {"date": "1403/09/04", "value": 2861.51, "ma3": 2561.65, "ma5": 2070.7, "ma7": 1750.16}, {"date": "1403/09/05", "value": 1997.64, "ma3": 2454.13, "ma5": 2280.77, "ma7": 1855.05}, {"date": "1403/09/06", "value": 1612.86, "ma3": 2157.34, "ma5": 2259.09, "ma7": 1994.86}, {"date": "1403/09/07", "value": 1143.31, "ma3": 1584.6, "ma5": 2023.71, "ma7": 2022.86}, {"date": "1403/09/10", "value": 1871.71, "ma3": 1542.63, "ma5": 1897.41, "ma7": 2044.35}, {"date": "1403/09/11", "value": 1069.38, "ma3": 1361.47, "ma5": 1538.98, "ma7": 1865.66}, {"date": "1403/09/12", "value": 1511.71, "ma3": 1484.27, "ma5": 1441.79, "ma7": 1724.02}, {"date": "1403/09/13", "value": 1825.62, "ma3": 1468.9, "ma5": 1484.35, "ma7": 1576.03}, {"date": "1403/09/14", "value": 1566.23, "ma3": 1634.52, "ma5": 1568.93, "ma7": 1514.4}, {"date": "1403/09/17", "value": 2055.51, "ma3": 1815.79, "ma5": 1605.69, "ma7": 1577.64}, {"date": "1403/09/18", "value": 1864.55, "ma3": 1828.76, "ma5": 1764.72, "ma7": 1680.67}, {"date": "1403/09/19", "value": 1769.5, "ma3": 1896.52, "ma5": 1816.28, "ma7": 1666.07}, {"date": "1403/09/20", "value": 2244.28, "ma3": 1959.44, "ma5": 1900.01, "ma7": 1833.91}, {"date": "1403/09/21", "value": 3298.86, "ma3": 2437.55, "ma5": 2246.54, "ma7": 2089.22}, {"date": "1403/09/24", "value": 4132.97, "ma3": 3225.37, "ma5": 2662.03, "ma7": 2418.84}, {"date": "1403/09/25", "value": 2998.96, "ma3": 3476.93, "ma5": 2888.91, "ma7": 2623.52}, {"date": "1403/09/26", "value": 3419.93, "ma3": 3517.29, "ma5": 3219.0, "ma7": 2818.44}, {"date": "1403/09/27", "value": 3488.39, "ma3": 3302.43, "ma5": 3467.82, "ma7": 3050.41}, {"date": "1403/09/28", "value": 2856.05, "ma3": 3254.79, "ma5": 3379.26, "ma7": 3205.63}, {"date": "1403/10/01", "value": 2462.16, "ma3": 2935.53, "ma5": 3045.1, "ma7": 3236.76}, {"date": "1403/10/02", "value": 2146.47, "ma3": 2488.23, "ma5": 2874.6, "ma7": 3072.13}, {"date": "1403/10/03", "value": 2197.61, "ma3": 2268.75, "ma5": 2630.14, "ma7": 2795.65}, {"date": "1403/10/04", "value": 2106.19, "ma3": 2150.09, "ma5": 2353.7, "ma7": 2668.11}, {"date": "1403/10/05", "value": 1614.04, "ma3": 1972.61, "ma5": 2105.29, "ma7": 2410.13}, {"date": "1403/10/08", "value": 2822.34, "ma3": 2180.86, "ma5": 2177.33, "ma7": 2314.98}, {"date": "1403/10/09", "value": 3106.2, "ma3": 2514.19, "ma5": 2369.28, "ma7": 2350.72}, {"date": "1403/10/10", "value": 2194.63, "ma3": 2707.72, "ma5": 2368.68, "ma7": 2312.5}, {"date": "1403/10/11", "value": 1718.71, "ma3": 2339.85, "ma5": 2291.18, "ma7": 2251.39}, {"date": "1403/10/12", "value": 2073.04, "ma3": 1995.46, "ma5": 2382.98, "ma7": 2233.59}, {"date": "1403/10/15", "value": 2215.96, "ma3": 2002.57, "ma5": 2261.71, "ma7": 2249.27}, {"date": "1403/10/16", "value": 1583.05, "ma3": 1957.35, "ma5": 1957.08, "ma7": 2244.85}, {"date": "1403/10/17", "value": 1283.72, "ma3": 1694.24, "ma5": 1774.9, "ma7": 2025.04}, {"date": "1403/10/18", "value": 1553.45, "ma3": 1473.41, "ma5": 1741.84, "ma7": 1803.22}, {"date": "1403/10/19", "value": 2144.48, "ma3": 1660.55, "ma5": 1756.13, "ma7": 1796.06}, {"date": "1403/10/22", "value": 1886.05, "ma3": 1861.33, "ma5": 1690.15, "ma7": 1819.96}, {"date": "1403/10/23", "value": 1693.06, "ma3": 1907.86, "ma5": 1712.15, "ma7": 1765.68}, {"date": "1403/10/24", "value": 1087.2, "ma3": 1555.44, "ma5": 1672.85, "ma7": 1604.43}, {"date": "1403/10/26", "value": 1474.28, "ma3": 1418.18, "ma5": 1657.01, "ma7": 1588.89}, {"date": "1403/10/29", "value": 1616.52, "ma3": 1392.67, "ma5": 1551.42, "ma7": 1636.43}, {"date": "1403/10/30", "value": 2002.77, "ma3": 1697.86, "ma5": 1574.77, "ma7": 1700.62}, {"date": "1403/11/01", "value": 1428.72, "ma3": 1682.67, "ma5": 1521.9, "ma7": 1598.37}, {"date": "1403/11/02", "value": 2034.77, "ma3": 1822.09, "ma5": 1711.41, "ma7": 1619.62}, {"date": "1403/11/03", "value": 2859.02, "ma3": 2107.5, "ma5": 1988.36, "ma7": 1786.18}, {"date": "1403/11/06", "value": 3236.21, "ma3": 2710.0, "ma5": 2312.3, "ma7": 2093.18}, {"date": "1403/11/07", "value": 2350.76, "ma3": 2815.33, "ma5": 2381.9, "ma7": 2218.4}, {"date": "1403/11/08", "value": 2109.79, "ma3": 2565.59, "ma5": 2518.11, "ma7": 2288.86}, {"date": "1403/11/10", "value": 2417.56, "ma3": 2292.7, "ma5": 2594.67, "ma7": 2348.12}, {"date": "1403/11/13", "value": 2457.82, "ma3": 2328.39, "ma5": 2514.43, "ma7": 2495.13}, {"date": "1403/11/14", "value": 3030.87, "ma3": 2635.42, "ma5": 2473.36, "ma7": 2637.43}, {"date": "1403/11/15", "value": 3042.55, "ma3": 2843.75, "ma5": 2611.72, "ma7": 2663.65}, {"date": "1403/11/16", "value": 2763.65, "ma3": 2945.69, "ma5": 2742.49, "ma7": 2596.14}, {"date": "1403/11/17", "value": 4834.74, "ma3": 3546.98, "ma5": 3225.93, "ma7": 2951.0}, {"date": "1403/11/21", "value": 7418.76, "ma3": 5005.72, "ma5": 4218.11, "ma7": 3709.42}, {"date": "1403/11/23", "value": 8845.33, "ma3": 7032.94, "ma5": 5381.01, "ma7": 4627.67}, {"date": "1403/11/27", "value": 5505.87, "ma3": 7256.65, "ma5": 5873.67, "ma7": 5063.11}, {"date": "1403/11/28", "value": 3184.66, "ma3": 5845.29, "ma5": 5957.87, "ma7": 5085.08}, {"date": "1403/11/29", "value": 3110.23, "ma3": 3933.59, "ma5": 5612.97, "ma7": 5094.75}, {"date": "1403/11/30", "value": 3858.71, "ma3": 3384.53, "ma5": 4900.96, "ma7": 5251.19}, {"date": "1403/12/01", "value": 5459.49, "ma3": 4142.81, "ma5": 4223.79, "ma7": 5340.44}, {"date": "1403/12/04", "value": 7520.7, "ma3": 5612.97, "ma5": 4626.76, "ma7": 5355.0}, {"date": "1403/12/05", "value": 6022.04, "ma3": 6334.08, "ma5": 5194.23, "ma7": 4951.67}, {"date": "1403/12/06", "value": 4315.2, "ma3": 5952.65, "ma5": 5435.23, "ma7": 4781.58}, {"date": "1403/12/07", "value": 4384.27, "ma3": 4907.17, "ma5": 5540.34, "ma7": 4952.95}, {"date": "1403/12/08", "value": 3769.21, "ma3": 4156.23, "ma5": 5202.28, "ma7": 5047.09}, {"date": "1403/12/11", "value": 5663.6, "ma3": 4605.69, "ma5": 4830.86, "ma7": 5304.93}, {"date": "1403/12/12", "value": 4907.61, "ma3": 4780.14, "ma5": 4607.98, "ma7": 5226.09}, {"date": "1403/12/13", "value": 3626.6, "ma3": 4732.6, "ma5": 4470.26, "ma7": 4669.79}, {"date": "1403/12/14", "value": 3317.43, "ma3": 3950.55, "ma5": 4256.89, "ma7": 4283.42}, {"date": "1403/12/15", "value": 2492.28, "ma3": 3145.44, "ma5": 4001.5, "ma7": 4023.0}, {"date": "1403/12/18", "value": 5057.76, "ma3": 3622.49, "ma5": 3880.34, "ma7": 4119.21}, {"date": "1403/12/19", "value": 6853.49, "ma3": 4801.18, "ma5": 4269.51, "ma7": 4559.82}, {"date": "1403/12/20", "value": 4806.77, "ma3": 5572.67, "ma5": 4505.55, "ma7": 4437.42}, {"date": "1403/12/21", "value": 3026.27, "ma3": 4895.51, "ma5": 4447.31, "ma7": 4168.66}, {"date": "1403/12/22", "value": 2991.2, "ma3": 3608.08, "ma5": 4547.1, "ma7": 4077.89}, {"date": "1403/12/25", "value": 3381.32, "ma3": 3132.93, "ma5": 4211.81, "ma7": 4087.01}, {"date": "1403/12/26", "value": 4491.89, "ma3": 3621.47, "ma5": 3739.49, "ma7": 4372.67}, {"date": "1403/12/27", "value": 5797.34, "ma3": 4556.85, "ma5": 3937.6, "ma7": 4478.33}, {"date": "1403/12/28", "value": 9298.47, "ma3": 6529.23, "ma5": 5192.04, "ma7": 4827.61}, {"date": "1404/01/05", "value": 6283.76, "ma3": 7126.52, "ma5": 5850.56, "ma7": 5038.61}, {"date": "1404/01/06", "value": 5341.65, "ma3": 6974.63, "ma5": 6242.62, "ma7": 5369.38}, {"date": "1404/01/09", "value": 7461.12, "ma3": 6362.18, "ma5": 6836.47, "ma7": 6007.94}, {"date": "1404/01/10", "value": 6918.21, "ma3": 6573.66, "ma5": 7060.64, "ma7": 6513.21}, {"date": "1404/01/16", "value": 7430.33, "ma3": 7269.89, "ma5": 6687.01, "ma7": 6932.98}, {"date": "1404/01/17", "value": 6454.93, "ma3": 6934.49, "ma5": 6721.25, "ma7": 7026.92}, {"date": "1404/01/18", "value": 7604.03, "ma3": 7163.1, "ma5": 7173.72, "ma7": 6784.86}, {"date": "1404/01/19", "value": 8281.5, "ma3": 7446.82, "ma5": 7337.8, "ma7": 7070.25}, {"date": "1404/01/20", "value": 7912.65, "ma3": 7932.73, "ma5": 7536.69, "ma7": 7437.54}, {"date": "1404/01/23", "value": 8783.9, "ma3": 8326.02, "ma5": 7807.4, "ma7": 7626.51}, {"date": "1404/01/24", "value": 4995.43, "ma3": 7230.66, "ma5": 7515.5, "ma7": 7351.82}, {"date": "1404/01/25", "value": 8176.73, "ma3": 7318.69, "ma5": 7630.04, "ma7": 7458.45}, {"date": "1404/01/26", "value": 6978.74, "ma3": 6716.97, "ma5": 7369.49, "ma7": 7533.28}, {"date": "1404/01/27", "value": 4500.59, "ma3": 6552.02, "ma5": 6687.08, "ma7": 7089.93}, {"date": "1404/01/30", "value": 6096.1, "ma3": 5858.48, "ma5": 6149.52, "ma7": 6777.73}, {"date": "1404/01/31", "value": 5902.81, "ma3": 5499.83, "ma5": 6330.99, "ma7": 6490.61}, {"date": "1404/02/01", "value": 3850.68, "ma3": 5283.2, "ma5": 5465.78, "ma7": 5785.87}, {"date": "1404/02/02", "value": 3462.25, "ma3": 4405.25, "ma5": 4762.49, "ma7": 5566.84}, {"date": "1404/02/03", "value": 2595.54, "ma3": 3302.82, "ma5": 4381.48, "ma7": 4769.53}, {"date": "1404/02/06", "value": 5153.88, "ma3": 3737.22, "ma5": 4193.03, "ma7": 4508.84}, {"date": "1404/02/07", "value": 4131.9, "ma3": 3960.44, "ma5": 3838.85, "ma7": 4456.17}, {"date": "1404/02/08", "value": 2389.08, "ma3": 3891.62, "ma5": 3546.53, "ma7": 3926.59}, {"date": "1404/02/09", "value": 2595.97, "ma3": 3038.98, "ma5": 3373.27, "ma7": 3454.19}, {"date": "1404/02/10", "value": 2198.77, "ma3": 2394.61, "ma5": 3293.92, "ma7": 3218.2}, {"date": "1404/02/13", "value": 4984.62, "ma3": 3259.79, "ma5": 3260.07, "ma7": 3435.68}, {"date": "1404/02/14", "value": 4999.21, "ma3": 4060.87, "ma5": 3433.53, "ma7": 3779.06}, {"date": "1404/02/15", "value": 3886.79, "ma3": 4623.54, "ma5": 3733.07, "ma7": 3598.05}, {"date": "1404/02/16", "value": 2706.44, "ma3": 3864.15, "ma5": 3755.17, "ma7": 3394.41}, {"date": "1404/02/17", "value": 2669.78, "ma3": 3087.67, "ma5": 3849.37, "ma7": 3434.51}, {"date": "1404/02/20", "value": 3131.04, "ma3": 2835.75, "ma5": 3478.65, "ma7": 3510.95}, {"date": "1404/02/21", "value": 6621.24, "ma3": 4140.69, "ma5": 3803.06, "ma7": 4142.73}, {"date": "1404/02/22", "value": 2658.12, "ma3": 4136.8, "ma5": 3557.32, "ma7": 3810.37}, {"date": "1404/02/23", "value": 1501.88, "ma3": 3593.75, "ma5": 3316.41, "ma7": 3310.76}, {"date": "1404/02/24", "value": 1641.98, "ma3": 1933.99, "ma5": 3110.85, "ma7": 2990.07}, {"date": "1404/02/27", "value": 2829.58, "ma3": 1991.15, "ma5": 3050.56, "ma7": 3007.66}, {"date": "1404/02/28", "value": 2862.38, "ma3": 2444.65, "ma5": 2298.79, "ma7": 3035.17}, {"date": "1404/02/29", "value": 2410.79, "ma3": 2700.92, "ma5": 2249.32, "ma7": 2932.28}, {"date": "1404/02/30", "value": 7306.61, "ma3": 4193.26, "ma5": 3410.27, "ma7": 3030.19}, {"date": "1404/02/31", "value": 3219.17, "ma3": 4312.19, "ma5": 3725.71, "ma7": 3110.34}, {"date": "1404/03/03", "value": 1712.14, "ma3": 4079.31, "ma5": 3502.22, "ma7": 3140.38}, {"date": "1404/03/04", "value": 1436.95, "ma3": 2122.75, "ma5": 3217.13, "ma7": 3111.09}, {"date": "1404/03/05", "value": 1485.33, "ma3": 1544.81, "ma5": 3032.04, "ma7": 2919.05}, {"date": "1404/03/06", "value": 935.71, "ma3": 1286.0, "ma5": 1757.86, "ma7": 2643.81}, {"date": "1404/03/07", "value": 1001.66, "ma3": 1140.9, "ma5": 1314.36, "ma7": 2442.51}, {"date": "1404/03/10", "value": 1357.48, "ma3": 1098.28, "ma5": 1243.43, "ma7": 1592.63}, {"date": "1404/03/11", "value": 1201.36, "ma3": 1186.83, "ma5": 1196.31, "ma7": 1304.38}, {"date": "1404/03/12", "value": 1989.57, "ma3": 1516.14, "ma5": 1297.16, "ma7": 1344.01}, {"date": "1404/03/13", "value": 1498.83, "ma3": 1563.25, "ma5": 1409.78, "ma7": 1352.85}, {"date": "1404/03/17", "value": 1846.95, "ma3": 1778.45, "ma5": 1578.84, "ma7": 1404.51}, {"date": "1404/03/18", "value": 1419.46, "ma3": 1588.41, "ma5": 1591.23, "ma7": 1473.62}, {"date": "1404/03/19", "value": 2456.06, "ma3": 1907.49, "ma5": 1842.17, "ma7": 1681.39}, {"date": "1404/03/20", "value": 1210.83, "ma3": 1695.45, "ma5": 1686.43, "ma7": 1660.44}, {"date": "1404/03/21", "value": 1326.09, "ma3": 1664.33, "ma5": 1651.88, "ma7": 1678.26}, {"date": "1404/04/07", "value": 4117.64, "ma3": 2218.19, "ma5": 2106.02, "ma7": 1982.27}, {"date": "1404/04/08", "value": 6398.02, "ma3": 3947.25, "ma5": 3101.73, "ma7": 2682.15}, {"date": "1404/04/09", "value": 7666.34, "ma3": 6060.67, "ma5": 4143.78, "ma7": 3513.49}, {"date": "1404/04/10", "value": 7428.92, "ma3": 7164.43, "ma5": 5387.4, "ma7": 4371.99}, {"date": "1404/04/11", "value": 4669.01, "ma3": 6588.09, "ma5": 6055.99, "ma7": 4688.12}, {"date": "1404/04/16", "value": 3616.46, "ma3": 5238.13, "ma5": 5955.75, "ma7": 5031.78}, {"date": "1404/04/17", "value": 2971.95, "ma3": 3752.47, "ma5": 5270.54, "ma7": 5266.91}, {"date": "1404/04/18", "value": 2289.56, "ma3": 2959.32, "ma5": 4195.18, "ma7": 5005.75}, {"date": "1404/04/21", "value": 3659.88, "ma3": 2973.8, "ma5": 3441.37, "ma7": 4614.59}, {"date": "1404/04/22", "value": 5812.54, "ma3": 3920.66, "ma5": 3670.08, "ma7": 4349.76}, {"date": "1404/04/23", "value": 5988.44, "ma3": 5153.62, "ma5": 4144.47, "ma7": 4143.98}, {"date": "1404/04/24", "value": 3920.63, "ma3": 5240.54, "ma5": 4334.21, "ma7": 4037.07}, {"date": "1404/04/25", "value": 2781.76, "ma3": 4230.28, "ma5": 4432.65, "ma7": 3917.82}, {"date": "1404/04/28", "value": 2125.58, "ma3": 2942.66, "ma5": 4125.79, "ma7": 3796.91}, {"date": "1404/04/29", "value": 2642.35, "ma3": 2516.56, "ma5": 3491.75, "ma7": 3847.31}, {"date": "1404/04/30", "value": 2523.02, "ma3": 2430.32, "ma5": 2798.67, "ma7": 3684.9}, {"date": "1404/04/31", "value": 2414.51, "ma3": 2526.63, "ma5": 2497.44, "ma7": 3199.47}, {"date": "1404/05/01", "value": 2606.82, "ma3": 2514.78, "ma5": 2462.46, "ma7": 2716.38}, {"date": "1404/05/04", "value": 2527.0, "ma3": 2516.11, "ma5": 2542.74, "ma7": 2517.29}, {"date": "1404/05/05", "value": 2538.0, "ma3": 2557.27, "ma5": 2521.87, "ma7": 2482.47}, {"date": "1404/05/06", "value": 3199.0, "ma3": 2754.67, "ma5": 2657.07, "ma7": 2635.81}, {"date": "1404/05/07", "value": 2540.0, "ma3": 2759.0, "ma5": 2682.16, "ma7": 2621.19}, {"date": "1404/05/08", "value": 2551.0, "ma3": 2763.33, "ma5": 2671.0, "ma7": 2625.19}, {"date": "1404/05/11", "value": 7197.0, "ma3": 4096.0, "ma5": 3605.0, "ma7": 3308.4}, {"date": "1404/05/12", "value": 7867.0, "ma3": 5871.67, "ma5": 4670.8, "ma7": 4059.86}, {"date": "1404/05/13", "value": 5680.0, "ma3": 6914.67, "ma5": 5167.0, "ma7": 4510.29}, {"date": "1404/05/14", "value": 9067.0, "ma3": 7538.0, "ma5": 6472.4, "ma7": 5443.0}, {"date": "1404/05/15", "value": 2730.0, "ma3": 5825.67, "ma5": 6508.2, "ma7": 5376.0}, {"date": "1404/05/18", "value": 3123.0, "ma3": 4973.33, "ma5": 5693.4, "ma7": 5459.29}, {"date": "1404/05/19", "value": 3007.0, "ma3": 2953.33, "ma5": 4721.4, "ma7": 5524.43}, {"date": "1404/05/20", "value": 2756.0, "ma3": 2962.0, "ma5": 4136.6, "ma7": 4890.0}, {"date": "1404/05/21", "value": 2043.0, "ma3": 2602.0, "ma5": 2731.8, "ma7": 4058.0}, {"date": "1404/05/22", "value": 3637.0, "ma3": 2812.0, "ma5": 2913.2, "ma7": 3766.14}, {"date": "1404/05/25", "value": 3155.0, "ma3": 2945.0, "ma5": 2919.6, "ma7": 2921.57}, {"date": "1404/05/26", "value": 2114.0, "ma3": 2968.67, "ma5": 2741.0, "ma7": 2833.57}, {"date": "1404/05/27", "value": 2494.0, "ma3": 2587.67, "ma5": 2688.6, "ma7": 2743.71}, {"date": "1404/05/28", "value": 1820.0, "ma3": 2142.67, "ma5": 2644.0, "ma7": 2574.14}, {"date": "1404/05/29", "value": 4198.0, "ma3": 2837.33, "ma5": 2756.2, "ma7": 2780.14}, {"date": "1404/06/01", "value": 4643.0, "ma3": 3553.67, "ma5": 3053.8, "ma7": 3151.57}, {"date": "1404/06/03", "value": 6151.0, "ma3": 4997.33, "ma5": 3861.2, "ma7": 3510.71}, {"date": "1404/06/04", "value": 4159.0, "ma3": 4984.33, "ma5": 4194.2, "ma7": 3654.14}, {"date": "1404/06/05", "value": 5749.0, "ma3": 5353.0, "ma5": 4980.0, "ma7": 4173.43}, {"date": "1404/06/08", "value": 9987.0, "ma3": 6631.67, "ma5": 6137.8, "ma7": 5243.86}, {"date": "1404/06/09", "value": 7850.0, "ma3": 7862.0, "ma5": 6779.2, "ma7": 6105.29}, {"date": "1404/06/11", "value": 7794.0, "ma3": 8543.67, "ma5": 7107.8, "ma7": 6619.0}, {"date": "1404/06/12", "value": 3741.0, "ma3": 6461.67, "ma5": 7024.2, "ma7": 6490.14}, {"date": "1404/06/15", "value": 5468.0, "ma3": 5667.67, "ma5": 6968.0, "ma7": 6392.57}, {"date": "1404/06/16", "value": 6035.0, "ma3": 5081.33, "ma5": 6177.6, "ma7": 6660.57}, {"date": "1404/06/17", "value": 8315.0, "ma3": 6606.0, "ma5": 6270.6, "ma7": 7027.14}, {"date": "1404/06/22", "value": 4917.0, "ma3": 6422.33, "ma5": 5695.2, "ma7": 6302.86}, {"date": "1404/06/23", "value": 4429.0, "ma3": 5887.0, "ma5": 5832.8, "ma7": 5814.14}, {"date": "1404/06/24", "value": 5131.0, "ma3": 4825.67, "ma5": 5765.4, "ma7": 5433.71}, {"date": "1404/06/25", "value": 6446.0, "ma3": 5335.33, "ma5": 5847.6, "ma7": 5820.14}, {"date": "1404/06/26", "value": 3993.0, "ma3": 5190.0, "ma5": 4983.2, "ma7": 5609.43}, {"date": "1404/06/29", "value": 11661.0, "ma3": 7366.67, "ma5": 6332.0, "ma7": 6413.14}, {"date": "1404/06/30", "value": 11759.0, "ma3": 9137.67, "ma5": 7798.0, "ma7": 6905.14}, {"date": "1404/06/31", "value": 7686.0, "ma3": 10368.67, "ma5": 8309.0, "ma7": 7300.71}, {"date": "1404/07/01", "value": 10775.0, "ma3": 10073.33, "ma5": 9174.8, "ma7": 8207.29}, {"date": "1404/07/02", "value": 12640.0, "ma3": 10367.0, "ma5": 10904.2, "ma7": 9280.0}, {"date": "1404/07/05", "value": 13730.0, "ma3": 12381.67, "ma5": 11318.0, "ma7": 10320.57}, {"date": "1404/07/06", "value": 12989.0, "ma3": 13119.67, "ma5": 11564.0, "ma7": 11605.71}, {"date": "1404/07/07", "value": 9276.0, "ma3": 11998.33, "ma5": 11882.0, "ma7": 11265.0}, {"date": "1404/07/08", "value": 10559.0, "ma3": 10941.33, "ma5": 11838.8, "ma7": 11093.57}, {"date": "1404/07/09", "value": 12743.0, "ma3": 10859.33, "ma5": 11859.4, "ma7": 11816.0}, {"date": "1404/07/12", "value": 11585.0, "ma3": 11629.0, "ma5": 11430.4, "ma7": 11931.71}, {"date": "1404/07/13", "value": 7528.0, "ma3": 10618.67, "ma5": 10338.2, "ma7": 11201.43}, {"date": "1404/07/14", "value": 7823.0, "ma3": 8978.67, "ma5": 10047.6, "ma7": 10357.57}, {"date": "1404/07/15", "value": 9590.0, "ma3": 8313.67, "ma5": 9853.8, "ma7": 9872.0}, {"date": "1404/07/16", "value": 10257.0, "ma3": 9223.33, "ma5": 9356.6, "ma7": 10012.14}, {"date": "1404/07/19", "value": 8540.0, "ma3": 9462.33, "ma5": 8747.6, "ma7": 9723.71}, {"date": "1404/07/20", "value": 10203.0, "ma3": 9666.67, "ma5": 9282.6, "ma7": 9360.86}, {"date": "1404/07/21", "value": 7950.0, "ma3": 8897.67, "ma5": 9308.0, "ma7": 8841.57}, {"date": "1404/07/22", "value": 5573.0, "ma3": 7908.67, "ma5": 8504.6, "ma7": 8562.29}, {"date": "1404/07/23", "value": 7139.0, "ma3": 6887.33, "ma5": 7881.0, "ma7": 8464.57}, {"date": "1404/07/26", "value": 6730.0, "ma3": 6480.67, "ma5": 7519.0, "ma7": 8056.0}, {"date": "1404/07/27", "value": 5991.0, "ma3": 6620.0, "ma5": 6676.6, "ma7": 7446.57}, {"date": "1404/07/28", "value": 6015.0, "ma3": 6245.33, "ma5": 6289.6, "ma7": 7085.86}, {"date": "1404/07/29", "value": 5642.0, "ma3": 5882.67, "ma5": 6303.4, "ma7": 6434.29}, {"date": "1404/07/30", "value": 6028.0, "ma3": 5895.0, "ma5": 6081.2, "ma7": 6159.71}, {"date": "1404/08/03", "value": 7218.0, "ma3": 6296.0, "ma5": 6178.8, "ma7": 6394.71}, {"date": "1404/08/04", "value": 5774.0, "ma3": 6340.0, "ma5": 6135.4, "ma7": 6199.71}, {"date": "1404/08/05", "value": 4887.0, "ma3": 5959.67, "ma5": 5909.8, "ma7": 5936.43}, {"date": "1404/08/06", "value": 6454.0, "ma3": 5705.0, "ma5": 6072.2, "ma7": 6002.57}, {"date": "1404/08/07", "value": 4360.0, "ma3": 5233.67, "ma5": 5738.6, "ma7": 5766.14}, {"date": "1404/08/10", "value": 4604.0, "ma3": 5139.33, "ma5": 5215.8, "ma7": 5617.86}, {"date": "1404/08/11", "value": 4405.0, "ma3": 4456.33, "ma5": 4942.0, "ma7": 5386.0}, {"date": "1404/08/12", "value": 4279.0, "ma3": 4429.33, "ma5": 4820.4, "ma7": 4966.14}, {"date": "1404/08/13", "value": 4568.0, "ma3": 4417.33, "ma5": 4443.2, "ma7": 4793.86}, {"date": "1404/08/14", "value": 3163.0, "ma3": 4003.33, "ma5": 4203.8, "ma7": 4547.57}, {"date": "1404/08/17", "value": 3013.0, "ma3": 3581.33, "ma5": 3885.6, "ma7": 4056.0}, {"date": "1404/08/18", "value": 3210.0, "ma3": 3128.67, "ma5": 3646.6, "ma7": 3891.71}, {"date": "1404/08/19", "value": 4334.0, "ma3": 3519.0, "ma5": 3657.6, "ma7": 3853.14}, {"date": "1404/08/20", "value": 9456.0, "ma3": 5666.67, "ma5": 4635.2, "ma7": 4574.71}, {"date": "1404/08/21", "value": 10000.0, "ma3": 7930.0, "ma5": 6002.6, "ma7": 5392.0}, {"date": "1404/08/24", "value": 7300.0, "ma3": 8918.67, "ma5": 6860.0, "ma7": 5782.29}, {"date": "1404/08/25", "value": 5800.0, "ma3": 7700.0, "ma5": 7378.0, "ma7": 6159.0}, {"date": "1404/08/26", "value": 5700.0, "ma3": 6266.67, "ma5": 7651.2, "ma7": 6542.86}, {"date": "1404/08/27", "value": 6600.0, "ma3": 6033.33, "ma5": 7080.0, "ma7": 7027.14}, {"date": "1404/08/28", "value": 7300.0, "ma3": 6533.33, "ma5": 6540.0, "ma7": 7450.86}, {"date": "1404/09/01", "value": 6300.0, "ma3": 6733.33, "ma5": 6340.0, "ma7": 7000.0}, {"date": "1404/09/02", "value": 7300.0, "ma3": 6966.67, "ma5": 6640.0, "ma7": 6614.29}, {"date": "1404/09/04", "value": 6000.0, "ma3": 6533.33, "ma5": 6700.0, "ma7": 6428.57}, {"date": "1404/09/05", "value": 6500.0, "ma3": 6600.0, "ma5": 6680.0, "ma7": 6528.57}, {"date": "1404/09/08", "value": 12800.0, "ma3": 8433.33, "ma5": 7780.0, "ma7": 7542.86}, {"date": "1404/09/09", "value": 21100.0, "ma3": 13466.67, "ma5": 10740.0, "ma7": 9614.29}, {"date": "1404/09/10", "value": 12600.0, "ma3": 15500.0, "ma5": 11800.0, "ma7": 10371.43}, {"date": "1404/09/11", "value": 10900.0, "ma3": 14866.67, "ma5": 12780.0, "ma7": 11028.57}, {"date": "1404/09/12", "value": 10100.0, "ma3": 11200.0, "ma5": 13500.0, "ma7": 11428.57}, {"date": "1404/09/15", "value": 10300.0, "ma3": 10433.33, "ma5": 13000.0, "ma7": 12042.86}, {"date": "1404/09/16", "value": 14800.0, "ma3": 11733.33, "ma5": 11740.0, "ma7": 13228.57}, {"date": "1404/09/17", "value": 12200.0, "ma3": 12433.33, "ma5": 11660.0, "ma7": 13142.86}, {"date": "1404/09/18", "value": 14600.0, "ma3": 13866.67, "ma5": 12400.0, "ma7": 12214.29}, {"date": "1404/09/19", "value": 11000.0, "ma3": 12600.0, "ma5": 12580.0, "ma7": 11985.71}, {"date": "1404/09/22", "value": 16400.0, "ma3": 14000.0, "ma5": 13800.0, "ma7": 12771.43}, {"date": "1404/09/23", "value": 9200.0, "ma3": 12200.0, "ma5": 12680.0, "ma7": 12642.86}, {"date": "1404/09/24", "value": 19600.0, "ma3": 15066.67, "ma5": 14160.0, "ma7": 13971.43}, {"date": "1404/09/25", "value": 10800.0, "ma3": 13200.0, "ma5": 13400.0, "ma7": 13400.0}, {"date": "1404/09/26", "value": 13400.0, "ma3": 14600.0, "ma5": 13880.0, "ma7": 13571.43}, {"date": "1404/09/29", "value": 15800.0, "ma3": 13333.33, "ma5": 13760.0, "ma7": 13742.86}, {"date": "1404/09/30", "value": 11900.0, "ma3": 13700.0, "ma5": 14300.0, "ma7": 13871.43}, {"date": "1404/10/01", "value": 12000.0, "ma3": 13233.33, "ma5": 12780.0, "ma7": 13242.86}, {"date": "1404/10/02", "value": 15400.0, "ma3": 13100.0, "ma5": 13700.0, "ma7": 14128.57}, {"date": "1404/10/03", "value": 18300.0, "ma3": 15233.33, "ma5": 14680.0, "ma7": 13942.86}, {"date": "1404/10/06", "value": 18500.0, "ma3": 17400.0, "ma5": 15220.0, "ma7": 15042.86}, {"date": "1404/10/07", "value": 39500.0, "ma3": 25433.33, "ma5": 20740.0, "ma7": 18771.43}, {"date": "1404/10/08", "value": 26400.0, "ma3": 28133.33, "ma5": 23620.0, "ma7": 20285.71}, {"date": "1404/10/09", "value": 22800.0, "ma3": 29566.67, "ma5": 25100.0, "ma7": 21842.86}, {"date": "1404/10/10", "value": 15300.0, "ma3": 21500.0, "ma5": 24500.0, "ma7": 22314.29}, {"date": "1404/10/14", "value": 12400.0, "ma3": 16833.33, "ma5": 23280.0, "ma7": 21885.71}, {"date": "1404/10/15", "value": 22500.0, "ma3": 16733.33, "ma5": 19880.0, "ma7": 22485.71}, {"date": "1404/10/16", "value": 31800.0, "ma3": 22233.33, "ma5": 20960.0, "ma7": 24385.71}, {"date": "1404/10/17", "value": 17400.0, "ma3": 23900.0, "ma5": 19880.0, "ma7": 21228.57}, {"date": "1404/10/20", "value": 17900.0, "ma3": 22366.67, "ma5": 20400.0, "ma7": 20014.29}, {"date": "1404/10/21", "value": 12900.0, "ma3": 16066.67, "ma5": 20500.0, "ma7": 18600.0}, {"date": "1404/10/22", "value": 15700.0, "ma3": 15500.0, "ma5": 19140.0, "ma7": 18657.14}, {"date": "1404/10/23", "value": 9600.0, "ma3": 12733.33, "ma5": 14700.0, "ma7": 18257.14}, {"date": "1404/10/24", "value": 10600.0, "ma3": 11966.67, "ma5": 13340.0, "ma7": 16557.14}, {"date": "1404/10/28", "value": 9300.0, "ma3": 9833.33, "ma5": 11620.0, "ma7": 13342.86}, {"date": "1404/10/29", "value": 8900.0, "ma3": 9600.0, "ma5": 10820.0, "ma7": 12128.57}, {"date": "1404/10/30", "value": 9400.0, "ma3": 9200.0, "ma5": 9560.0, "ma7": 10914.29}, {"date": "1404/11/01", "value": 13300.0, "ma3": 10533.33, "ma5": 10300.0, "ma7": 10971.43}, {"date": "1404/11/04", "value": 12300.0, "ma3": 11666.67, "ma5": 10640.0, "ma7": 10485.71}, {"date": "1404/11/05", "value": 13300.0, "ma3": 12966.67, "ma5": 11440.0, "ma7": 11014.29}, {"date": "1404/11/06", "value": 19500.0, "ma3": 15033.33, "ma5": 13560.0, "ma7": 12285.71}, {"date": "1404/11/07", "value": 25900.0, "ma3": 19566.67, "ma5": 16860.0, "ma7": 14657.14}, {"date": "1404/11/08", "value": 37200.0, "ma3": 27533.33, "ma5": 21640.0, "ma7": 18700.0}, {"date": "1404/11/11", "value": 31700.0, "ma3": 31600.0, "ma5": 25520.0, "ma7": 21885.71}, {"date": "1404/11/12", "value": 22000.0, "ma3": 30300.0, "ma5": 27260.0, "ma7": 23128.57}, {"date": "1404/11/13", "value": 29800.0, "ma3": 27833.33, "ma5": 29320.0, "ma7": 25628.57}, {"date": "1404/11/14", "value": 18700.0, "ma3": 23500.0, "ma5": 27880.0, "ma7": 26400.0}, {"date": "1404/11/18", "value": 16100.0, "ma3": 21533.33, "ma5": 23660.0, "ma7": 25914.29}, {"date": "1404/11/19", "value": 17300.0, "ma3": 17366.67, "ma5": 20780.0, "ma7": 24685.71}, {"date": "1404/11/20", "value": 20800.0, "ma3": 18066.67, "ma5": 20540.0, "ma7": 22342.86}, {"date": "1404/11/21", "value": 17300.0, "ma3": 18466.67, "ma5": 18040.0, "ma7": 20285.71}, {"date": "1404/11/25", "value": 12700.0, "ma3": 16933.33, "ma5": 16840.0, "ma7": 18957.14}, {"date": "1404/11/26", "value": 13000.0, "ma3": 14333.33, "ma5": 16220.0, "ma7": 16557.14}, {"date": "1404/11/27", "value": 11000.0, "ma3": 12233.33, "ma5": 14960.0, "ma7": 15457.14}, {"date": "1404/11/28", "value": 21300.0, "ma3": 15100.0, "ma5": 15060.0, "ma7": 16200.0}, {"date": "1404/11/29", "value": 11000.0, "ma3": 14433.33, "ma5": 13800.0, "ma7": 15300.0}, {"date": "1404/12/02", "value": 18300.0, "ma3": 16866.67, "ma5": 14920.0, "ma7": 14942.86}, {"date": "1404/12/03", "value": 11100.0, "ma3": 13466.67, "ma5": 14540.0, "ma7": 14057.14}, {"date": "1404/12/04", "value": 10100.0, "ma3": 13166.67, "ma5": 14360.0, "ma7": 13685.71}, {"date": "1404/12/05", "value": 9600.0, "ma3": 10266.67, "ma5": 12020.0, "ma7": 13200.0}, {"date": "1404/12/06", "value": 13800.0, "ma3": 11166.67, "ma5": 12580.0, "ma7": 13600.0}, {"date": "1404/12/24", "value": 2300.0, "ma3": 8566.67, "ma5": 9380.0, "ma7": 10885.71}, {"date": "1404/12/25", "value": 13400.0, "ma3": 9833.33, "ma5": 9840.0, "ma7": 11228.57}, {"date": "1404/12/26", "value": 10500.0, "ma3": 8733.33, "ma5": 9920.0, "ma7": 10114.29}, {"date": "1404/12/27", "value": 11100.0, "ma3": 11666.67, "ma5": 10220.0, "ma7": 10114.29}, {"date": "1405/01/05", "value": 5400.0, "ma3": 9000.0, "ma5": 8540.0, "ma7": 9442.86}, {"date": "1405/01/08", "value": 3900.0, "ma3": 6800.0, "ma5": 8860.0, "ma7": 8628.57}, {"date": "1405/01/09", "value": 4200.0, "ma3": 4500.0, "ma5": 7020.0, "ma7": 7257.14}, {"date": "1405/01/10", "value": 3700.0, "ma3": 3933.33, "ma5": 5660.0, "ma7": 7457.14}, {"date": "1405/01/11", "value": 3100.0, "ma3": 3666.67, "ma5": 4060.0, "ma7": 5985.71}, {"date": "1405/01/15", "value": 8900.0, "ma3": 5233.33, "ma5": 4760.0, "ma7": 5757.14}, {"date": "1405/01/16", "value": 6000.0, "ma3": 6000.0, "ma5": 5180.0, "ma7": 5028.57}, {"date": "1405/01/17", "value": 4500.0, "ma3": 6466.67, "ma5": 5240.0, "ma7": 4900.0}, {"date": "1405/01/18", "value": 8800.0, "ma3": 6433.33, "ma5": 6260.0, "ma7": 5600.0}, {"date": "1405/01/19", "value": 8500.0, "ma3": 7266.67, "ma5": 7340.0, "ma7": 6214.29}, {"date": "1405/01/22", "value": 5900.0, "ma3": 7733.33, "ma5": 6740.0, "ma7": 6528.57}, {"date": "1405/01/23", "value": 8000.0, "ma3": 7466.67, "ma5": 7140.0, "ma7": 7228.57}, {"date": "1405/01/24", "value": 8400.0, "ma3": 7433.33, "ma5": 7920.0, "ma7": 7157.14}, {"date": "1405/01/26", "value": 7100.0, "ma3": 7833.33, "ma5": 7580.0, "ma7": 7314.29}, {"date": "1405/01/29", "value": 10100.0, "ma3": 8533.33, "ma5": 7900.0, "ma7": 8114.29}, {"date": "1405/01/30", "value": 6600.0, "ma3": 7933.33, "ma5": 8040.0, "ma7": 7800.0}, {"date": "1405/01/31", "value": 5900.0, "ma3": 7533.33, "ma5": 7620.0, "ma7": 7428.57}, {"date": "1405/02/01", "value": 4000.0, "ma3": 5500.0, "ma5": 6740.0, "ma7": 7157.14}, {"date": "1405/02/02", "value": 6100.0, "ma3": 5333.33, "ma5": 6540.0, "ma7": 6885.71}, {"date": "1405/02/05", "value": 5200.0, "ma3": 5100.0, "ma5": 5560.0, "ma7": 6428.57}, {"date": "1405/02/06", "value": 7600.0, "ma3": 6300.0, "ma5": 5760.0, "ma7": 6500.0}, {"date": "1405/02/07", "value": 19000.0, "ma3": 10600.0, "ma5": 8380.0, "ma7": 7771.43}, {"date": "1405/02/08", "value": 27300.0, "ma3": 17966.67, "ma5": 13040.0, "ma7": 10728.57}, {"date": "1405/02/09", "value": 33900.0, "ma3": 26733.33, "ma5": 18600.0, "ma7": 14728.57}, {"date": "1405/02/12", "value": 31500.0, "ma3": 30900.0, "ma5": 23860.0, "ma7": 18657.14}, {"date": "1405/02/13", "value": 25100.0, "ma3": 30166.67, "ma5": 27360.0, "ma7": 21371.43}, {"date": "1405/02/14", "value": 22500.0, "ma3": 26366.67, "ma5": 28060.0, "ma7": 23842.86}, {"date": "1405/02/15", "value": 24500.0, "ma3": 24033.33, "ma5": 27500.0, "ma7": 26257.14}, {"date": "1405/02/16", "value": 25900.0, "ma3": 24300.0, "ma5": 25900.0, "ma7": 27242.86}, {"date": "1405/02/19", "value": 19000.0, "ma3": 23133.33, "ma5": 23400.0, "ma7": 26057.14}];
+let allData = [...RAW];
+let filtered = [...allData];
+let currentPage = 1;
+const PAGE_SIZE = 20;
+let sortCol = 0, sortDir = -1;
+
+const fmt = v => v == null ? '—' : Number(v).toLocaleString('fa-IR', {maximumFractionDigits:0});
+const fmtNum = v => v == null ? '—' : Number(v).toLocaleString('fa-IR', {maximumFractionDigits:2});
+
+const maxV = 39500.0;
+const minV = 634.2;
+
+function buildMetrics() {
+  const last = allData[allData.length-1];
+  const prev = allData[allData.length-2];
+  const chg = ((last.value - prev.value)/prev.value*100).toFixed(2);
+  const avg = allData.reduce((s,d)=>s+d.value,0)/allData.length;
+  const maxRow = allData.reduce((a,b)=>a.value>b.value?a:b);
+  const minRow = allData.reduce((a,b)=>a.value<b.value?a:b);
+
+  const cards = [
+    {label:'آخرین ارزش (میلیارد ت)', value: fmt(last.value), sub: last.date, chg},
+    {label:'تغییر نسبت به روز قبل', value: (chg>0?'+':'')+chg+'٪', sub:'', chgSign: chg},
+    {label:'میانگین کل دوره', value: fmt(Math.round(avg)), sub: allData.length + ' روز معاملاتی'},
+    {label:'بیشترین ارزش', value: fmt(maxRow.value), sub: maxRow.date},
+    {label:'کمترین ارزش', value: fmt(minRow.value), sub: minRow.date},
+    {label:'تعداد روزها', value: allData.length.toLocaleString('fa-IR'), sub:'روز معاملاتی'}
+  ];
+
+  document.getElementById('metrics').innerHTML = cards.map(c => `
+    <div class="metric-card">
+      <div class="label">${c.label}</div>
+      <div class="value ${c.chgSign!=null ? (c.chgSign>=0?'change-up':'change-dn') : ''}">${c.value}</div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join('');
+
+  document.getElementById('data-range').textContent = allData[0].date + ' تا ' + last.date;
+  document.getElementById('last-update').textContent = 'آخرین بروزرسانی: ' + last.date;
+}
+
+let myChart = null;
+function buildChart(rangeN) {
+  const slice = rangeN === 'all' ? allData : allData.slice(-rangeN);
+  const labels = slice.map(d=>d.date);
+  const vals   = slice.map(d=>d.value);
+  const ma7    = slice.map(d=>d.ma7);
+  const ma3_chart = slice.map(d=>d.ma3);
+
+  // 30-day MA computed on sliced data
+  const ma30 = slice.map((d,i,arr)=>{
+    const w = arr.slice(Math.max(0,i-29),i+1);
+    return Math.round(w.reduce((s,x)=>s+x.value,0)/w.length);
+  });
+
+  if(myChart) myChart.destroy();
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  myChart = new Chart(ctx, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type:'bar',
+          label:'ارزش روزانه',
+          data:vals,
+          backgroundColor: vals.map(v => v===maxV?'rgba(15,110,86,0.75)': v===minV?'rgba(153,60,29,0.6)':'rgba(55,138,221,0.55)'),
+          borderWidth:0,
+          order:2
+        },
+        {
+          type:'line',
+          label:'میانگین ۳ روزه',
+          data:ma3_chart,
+          borderColor:'#e6ac00',
+          borderWidth:1.5,
+          pointRadius:0,
+          tension:0.4,
+          fill:false,
+          order:1
+        },
+        {
+          type:'line',
+          label:'میانگین ۷ روزه',
+          data:ma7,
+          borderColor:'#d85a30',
+          borderWidth:1.5,
+          pointRadius:0,
+          tension:0.4,
+          fill:false,
+          order:1
+        },
+        {
+          type:'line',
+          label:'میانگین ۳۰ روزه',
+          data:ma30,
+          borderColor:'#1d9e75',
+          borderWidth:1.5,
+          pointRadius:0,
+          tension:0.4,
+          fill:false,
+          order:0
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          rtl:true,
+          textDirection:'rtl',
+          callbacks:{
+            label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y)
+          }
+        }
+      },
+      scales:{
+        x:{
+          ticks:{
+            maxTicksLimit:12,
+            font:{size:11},
+            color:'#888780'
+          },
+          grid:{display:false}
+        },
+        y:{
+          ticks:{
+            font:{size:11},
+            color:'#888780',
+            callback:v=>fmt(v)
+          },
+          grid:{color:'rgba(0,0,0,0.04)'}
+        }
+      }
+    }
+  });
+}
+
+function setRange(n, btn) {
+  document.querySelectorAll('.btn-range').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  buildChart(n);
+}
+
+function filterTable() {
+  const q = document.getElementById('search').value.trim();
+  filtered = q ? allData.filter(d=>d.date.includes(q)) : [...allData];
+  currentPage = 1;
+  renderTable();
+}
+
+function sortTable(col) {
+  if(sortCol===col) sortDir*=-1; else { sortCol=col; sortDir=-1; }
+  filtered.sort((a,b)=>{
+    const va = col===0 ? a.date : a.value;
+    const vb = col===0 ? b.date : b.value;
+    return va>vb ? sortDir : va<vb ? -sortDir : 0;
+  });
+  renderTable();
+}
+
+function renderTable() {
+  const start = (currentPage-1)*PAGE_SIZE;
+  const page  = filtered.slice(start, start+PAGE_SIZE);
+  const body  = document.getElementById('table-body');
+  body.innerHTML = page.map(d => {
+    const isMax = d.value===maxV;
+    const isMin = d.value===minV;
+    const cls = isMax?'high': isMin?'low':'';
+    return `<tr>
+      <td>${d.date}</td>
+      <td class="value-cell ${cls}">${fmt(d.value)}</td>
+      <td class="ma-cell">${fmt(d.ma3)}</td>
+      <td class="ma-cell">${fmt(d.ma5)}</td>
+      <td class="ma-cell">${fmt(d.ma7)}</td>
+    </tr>`;
+  }).join('');
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filtered.length/PAGE_SIZE);
+  document.getElementById('pagination-info').textContent =
+    'نمایش ' + filtered.length + ' ردیف — صفحه ' + currentPage + ' از ' + total;
+  const wrap = document.getElementById('page-btns');
+  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage<=1?'disabled':''}>‹</button>`;
+  const pages = [];
+  if(total<=7) {
+    for(let i=1;i<=total;i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if(currentPage>3) pages.push('...');
+    for(let i=Math.max(2,currentPage-1);i<=Math.min(total-1,currentPage+1);i++) pages.push(i);
+    if(currentPage<total-2) pages.push('...');
+    pages.push(total);
+  }
+  pages.forEach(p=>{
+    if(p==='...') html+=`<span style="padding:4px 6px;color:#888780">…</span>`;
+    else html+=`<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+  });
+  html+=`<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage>=total?'disabled':''}>›</button>`;
+  wrap.innerHTML = html;
+}
+
+function goPage(p) {
+  const total = Math.ceil(filtered.length/PAGE_SIZE);
+  if(p<1||p>total) return;
+  currentPage = p;
+  renderTable();
+}
+
+function recalcMA() {
+  const vals = allData.map(d=>d.value);
+  allData.forEach((d,i)=>{
+    d.ma3=Math.round(vals.slice(Math.max(0,i-2),i+1).reduce((s,v)=>s+v,0)/Math.min(3,i+1));
+    d.ma5=Math.round(vals.slice(Math.max(0,i-4),i+1).reduce((s,v)=>s+v,0)/Math.min(5,i+1));
+    d.ma7=Math.round(vals.slice(Math.max(0,i-6),i+1).reduce((s,v)=>s+v,0)/Math.min(7,i+1));
+  });
+}
+
+function fillDays() {
+  const month = parseInt(document.getElementById('inp-month').value);
+  const maxDay = month <= 6 ? 31 : month <= 11 ? 30 : 29;
+  const sel = document.getElementById('inp-day');
+  const cur = parseInt(sel.value) || 1;
+  sel.innerHTML = '';
+  for(let d = 1; d <= maxDay; d++) {
+    const o = document.createElement('option');
+    o.value = String(d).padStart(2,'0');
+    o.textContent = d;
+    if(d === cur) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+document.getElementById('inp-month').addEventListener('change', fillDays);
+fillDays();
+
+function addRow() {
+  const y = document.getElementById('inp-year').value.trim();
+  const m = document.getElementById('inp-month').value;
+  const d = document.getElementById('inp-day').value;
+  const date = y + '/' + m + '/' + d;
+  const val  = parseFloat(document.getElementById('inp-value').value);
+  const msg  = document.getElementById('add-msg');
+  if(!date || !/^\d{4}\/\d{2}\/\d{2}$/.test(date)) {
+    msg.className='msg err'; msg.textContent='فرمت تاریخ صحیح نیست (مثال: 1405/03/01)'; return;
+  }
+  if(isNaN(val)||val<=0) {
+    msg.className='msg err'; msg.textContent='لطفاً یک عدد معتبر برای ارزش وارد کنید'; return;
+  }
+  if(allData.find(d=>d.date===date)) {
+    msg.className='msg err'; msg.textContent='این تاریخ قبلاً ثبت شده است'; return;
+  }
+  allData.push({date,value:val,ma3:0,ma5:0,ma7:0});
+  allData.sort((a,b)=>a.date>b.date?1:-1);
+  recalcMA();
+  filtered = [...allData];
+  buildMetrics();
+  buildChart('all');
+  document.querySelectorAll('.btn-range').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.btn-range')[0].classList.add('active');
+  currentPage=1;
+  renderTable();
+  document.getElementById('inp-year').value='';
+  document.getElementById('inp-value').value='';
+  msg.className='msg ok'; msg.textContent='✓ داده ثبت شد: '+date+' — در حال ذخیره در GitHub...';
+  saveToGitHub().then(ok => {
+    if(ok) { msg.textContent='✓ داده ثبت و در GitHub ذخیره شد: '+date; }
+    else if(!ghToken) { msg.textContent='✓ داده ثبت شد (برای ذخیره دائمی، Token تنظیم کنید)'; }
+    setTimeout(()=>msg.textContent='',4000);
+  });
+}
+
+buildMetrics();
+buildChart('all');
+filtered = [...allData];
+renderTable();
+
+
+// ── GitHub Sync ──────────────────────────────────────────
+const GH_USER = 'hirad94';
+const GH_REPO = 'gold-dashboard';
+const GH_FILE = 'data.json';
+const GH_API  = `https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`;
+
+let ghToken = '';
+let ghSha   = '';
+
+function setSyncStatus(state, label) {
+  const dot = document.getElementById('sync-status');
+  const lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot sync-' + state;
+  lbl.textContent = 'GitHub sync: ' + label;
+}
+
+function toggleGithubPanel() {
+  document.getElementById('github-panel').classList.toggle('open');
+}
+
+function saveToken() {
+  const t = document.getElementById('gh-token').value.trim();
+  const msg = document.getElementById('gh-msg');
+  if(!t.startsWith('ghp_') && !t.startsWith('github_pat_')) {
+    msg.className='msg err'; msg.textContent='Token معتبر نیست. باید با ghp_ یا github_pat_ شروع شود.'; return;
+  }
+  ghToken = t;
+  msg.className='msg ok'; msg.textContent='✓ Token ذخیره شد. در حال بررسی اتصال...';
+  loadFromGitHub(true);
+}
+
+async function loadFromGitHub(showResult=false) {
+  if(!ghToken) return;
+  setSyncStatus('loading', 'در حال بارگذاری...');
+  try {
+    const res = await fetch(GH_API, {
+      headers: { 'Authorization': 'token ' + ghToken, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if(res.status === 404) {
+      // File doesn't exist yet — will be created on first save
+      setSyncStatus('ok', 'آماده — فایل data.json ساخته خواهد شد');
+      if(showResult) { document.getElementById('gh-msg').className='msg ok'; document.getElementById('gh-msg').textContent='✓ اتصال برقرار است. اولین ثبت داده، فایل را می‌سازد.'; }
+      return;
+    }
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    ghSha = json.sha;
+    const decoded = JSON.parse(atob(json.content.replace(/\n/g,'')));
+    if(Array.isArray(decoded) && decoded.length > 0) {
+      allData = decoded;
+      recalcMA();
+      filtered = [...allData];
+      buildMetrics();
+      buildChart('all');
+      currentPage = 1;
+      renderTable();
+      setSyncStatus('ok', 'بارگذاری شد — ' + allData.length + ' ردیف');
+      if(showResult) { document.getElementById('gh-msg').className='msg ok'; document.getElementById('gh-msg').textContent='✓ ' + allData.length + ' ردیف از GitHub بارگذاری شد.'; }
+    } else {
+      setSyncStatus('ok', 'متصل — فایل خالی است');
+    }
+  } catch(e) {
+    setSyncStatus('err', 'خطا: ' + e.message);
+    if(showResult) { document.getElementById('gh-msg').className='msg err'; document.getElementById('gh-msg').textContent='خطا: ' + e.message; }
+  }
+}
+
+async function saveToGitHub() {
+  if(!ghToken) return false;
+  setSyncStatus('loading', 'در حال ذخیره...');
+  try {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(allData, null, 2))));
+    const body = { message: 'update data.json — ' + new Date().toISOString(), content };
+    if(ghSha) body.sha = ghSha;
+    const res = await fetch(GH_API, {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'token ' + ghToken,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if(!res.ok) { const e = await res.json(); throw new Error(e.message); }
+    const json = await res.json();
+    ghSha = json.content.sha;
+    setSyncStatus('ok', 'ذخیره شد ✓ — ' + allData.length + ' ردیف');
+    return true;
+  } catch(e) {
+    setSyncStatus('err', 'خطای ذخیره: ' + e.message);
+    return false;
+  }
+}
+// ─────────────────────────────────────────────────────────
+
+</script>
+</body>
+</html>
